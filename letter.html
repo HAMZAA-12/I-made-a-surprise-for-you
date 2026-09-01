@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heavenly Heart ☁️💖</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Pacifico&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            /* Heavenly animated gradient background */
+            background: linear-gradient(-45deg, #ffd1ff, #fad0c4, #e0c3fc, #c2e9fb);
+            background-size: 400% 400%;
+            animation: gradientSky 15s ease infinite;
+            font-family: 'Fredoka', sans-serif;
+            user-select: none;
+        }
+
+        @keyframes gradientSky {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Overlay UI Layers */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none; /* Let taps pass through to canvas */
+        }
+
+        /* --- New: Positioning for the Hint Bubble --- */
+        .hint-container {
+            position: absolute;
+            top: 15%; /* Mid/Top of the screen */
+            left: 50%;
+            transform: translateX(-50%); /* Only center horizontally */
+            width: auto;
+            pointer-events: none; /* Let taps pass through to canvas */
+            display: flex;
+            justify-content: center;
+        }
+
+        #hint-text {
+            color: #ff6b9e;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 10px 25px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(255, 107, 158, 0.2);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* --- New: Absolute Centering for the Love Letter --- */
+        #love-letter {
+            position: absolute;
+            top: 50%; /* Perfect center vertical */
+            left: 50%; /* Perfect center horizontal */
+            transform-origin: center center;
+            /* Initial state for pop-in animation */
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8); 
+            
+            text-align: center;
+            width: 90%; /* For smaller screens */
+            max-width: 500px; /* Max size on large screens */
+            box-sizing: border-box; /* Include padding in width */
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 20px 40px rgba(255, 154, 158, 0.3);
+            color: #5c4d7d;
+        }
+
+        #love-letter h1 {
+            font-family: 'Pacifico', cursive;
+            font-size: 3rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #ff6b9e;
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
+        }
+
+        #love-letter p {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #6d5b97;
+            font-weight: 400;
+        }
+
+        .emoji {
+            font-size: 1.8rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="ui-layer">
+        <!-- New structure to wrap and position the hint bubble at mid-top -->
+        <div class="hint-container">
+            <div id="hint-text">Tap for surprise 😛</div>
+        </div>
+        
+        <!-- Positioned centrally via CSS -->
+        <div id="love-letter">
+            <h1>hi meri jaan! 🌸</h1>
+            <p>I love you sooo much and you mean everything to me.</p>
+            <p>Ever since you came in my life I started enjoying living</p>
+            <p>I am trying my best to give you the love you deserve and make you enjoy living as well</p>
+            <p>I hope you like this</p>
+            <p>I'll be with you FOREVER <span class="emoji">💖🫧</span></p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <script>
+        // --- Generates a cute 2D heart texture for the particles! ---
+        function createHeartTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; 
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.translate(0, 5); // Shift down slightly
+            ctx.beginPath();
+            ctx.moveTo(32, 15);
+            ctx.bezierCurveTo(32, 12, 29, 0, 16, 0);
+            ctx.bezierCurveTo(0, 0, 0, 17.5, 0, 17.5);
+            ctx.bezierCurveTo(0, 27.5, 10, 40, 32, 54);
+            ctx.bezierCurveTo(54, 40, 64, 27.5, 64, 17.5);
+            ctx.bezierCurveTo(64, 17.5, 64, 0, 48, 0);
+            ctx.bezierCurveTo(38, 0, 32, 12, 32, 15);
+            
+            ctx.fillStyle = '#ffffff'; // White so it can be tinted by shaders
+            ctx.fill();
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
+        // --- Setup Scene, Camera, Renderer ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        // Transparent background so our CSS gradient shines through!
+        scene.background = null; 
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 30;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // --- Particle System Generation ---
+        const particleCount = 6000; // Adjusted for larger, distinct heart shapes
+        
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);     
+        const targetPositions = new Float32Array(particleCount * 3); 
+        const burstPositions = new Float32Array(particleCount * 3);  
+        const colors = new Float32Array(particleCount * 3);
+        const sizes = new Float32Array(particleCount);
+
+        // Fluffy pastel color palette
+        const palette = [
+            new THREE.Color('#ff85a2'), // Strawberry pink
+            new THREE.Color('#ffb3c6'), // Baby pink
+            new THREE.Color('#ffcbf2'), // Soft lavender
+            new THREE.Color('#c8e7ff'), // Cloud blue
+            new THREE.Color('#fdf0d5')  // Buttermilk yellow
+        ];
+
+        // Cute Plump Heart Equation
+        function getHeartPoint(t) {
+            const x = 16 * Math.pow(Math.sin(t), 3);
+            const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+            return new THREE.Vector3(x, y, 0).multiplyScalar(0.22); 
+        }
+
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+
+            // 1. Scattered state: floating around lazily
+            const radius = 20 + Math.random() * 25;
+            const thetaScatter = Math.random() * 2 * Math.PI;
+            const phiScatter = Math.acos((Math.random() * 2) - 1);
+            positions[i3] = radius * Math.sin(phiScatter) * Math.cos(thetaScatter);
+            positions[i3 + 1] = radius * Math.sin(phiScatter) * Math.sin(thetaScatter);
+            positions[i3 + 2] = radius * Math.cos(phiScatter);
+
+            // 2. Formed state: Heart shape
+            const t = Math.random() * Math.PI * 2;
+            const basePos = getHeartPoint(t);
+            const spread = 0.5 + Math.random() * 1.5; // Soften the edges for a fluffy look
+            
+            targetPositions[i3] = basePos.x + (Math.random() - 0.5) * spread;
+            targetPositions[i3 + 1] = basePos.y + (Math.random() - 0.5) * spread;
+            targetPositions[i3 + 2] = (Math.random() - 0.5) * spread * 2.0;
+
+            // 3. Burst state: Float up like happy balloons instead of an aggressive explosion!
+            burstPositions[i3] = targetPositions[i3] * 3.0 + (Math.random() - 0.5) * 40;
+            burstPositions[i3 + 1] = targetPositions[i3 + 1] + 30 + Math.random() * 50; // Fly UP
+            burstPositions[i3 + 2] = targetPositions[i3 + 2] * 3.0 + (Math.random() - 0.5) * 40;
+
+            // Colors
+            const color = palette[Math.floor(Math.random() * palette.length)];
+            colors[i3] = color.r;
+            colors[i3 + 1] = color.g;
+            colors[i3 + 2] = color.b;
+
+            // Make the particles bigger so we can see the heart shapes!
+            sizes[i] = Math.random() * 10 + 5;
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('aTarget', new THREE.BufferAttribute(targetPositions, 3));
+        geometry.setAttribute('aBurst', new THREE.BufferAttribute(burstPositions, 3));
+        geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+        geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+
+        // --- Custom Shader Material ---
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uFormed: { value: 0 }, 
+                uBurst: { value: 0 },
+                uTexture: { value: createHeartTexture() } // Feed the tiny heart texture!
+            },
+            vertexShader: `
+                uniform float uTime;
+                uniform float uFormed;
+                uniform float uBurst;
+                
+                attribute vec3 aTarget;
+                attribute vec3 aBurst;
+                attribute vec3 aColor;
+                attribute float aSize;
+                
+                varying vec3 vColor;
+
+                void main() {
+                    vColor = aColor;
+                    
+                    // Cute bouncy heartbeat math! (Double thump)
+                    float beat = sin(uTime * 5.0) * 0.5 + 0.5;
+                    beat = pow(beat, 6.0) * 0.15; // Creates a sharp little thump
+                    vec3 targetHeart = aTarget * (1.0 + beat);
+
+                    // Scattered -> Heart
+                    vec3 currentPos = mix(position, targetHeart, uFormed);
+
+                    // Heart -> Balloons floating away
+                    // Add a little sway to the floating balloons
+                    vec3 burstTarget = aBurst;
+                    burstTarget.x += sin(uTime * 2.0 + aBurst.y) * 5.0; 
+                    currentPos = mix(currentPos, burstTarget, uBurst);
+
+                    // Gentle floating in space for non-formed parts
+                    float floatFactor = max((1.0 - uFormed), uBurst);
+                    currentPos.x += sin(uTime * 1.5 + position.y * 0.5) * 0.4 * floatFactor;
+                    currentPos.y += cos(uTime * 1.5 + position.x * 0.5) * 0.4 * floatFactor;
+
+                    vec4 mvPosition = modelViewMatrix * vec4(currentPos, 1.0);
+                    gl_Position = projectionMatrix * mvPosition;
+                    
+                    // Cute size attenuation
+                    gl_PointSize = aSize * (150.0 / -mvPosition.z);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D uTexture;
+                varying vec3 vColor;
+
+                void main() {
+                    // Apply our beautiful tiny heart texture to every particle!
+                    vec4 texColor = texture2D(uTexture, gl_PointCoord);
+                    
+                    // Discard the edges so it's shaped like a heart, not a square
+                    if(texColor.a < 0.1) discard;
+                    
+                    // Tint the white texture with our pastel colors
+                    gl_FragColor = vec4(vColor, texColor.a * 0.9);
+                }
+            `,
+            blending: THREE.NormalBlending, // Normal blending looks better on light backgrounds
+            depthWrite: false,
+            transparent: true,
+        });
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // --- Interaction & State Management ---
+        let appState = 'scattered'; 
+        const hintEl = document.getElementById('hint-text');
+
+        // Combined click handler to step through the animations
+        const handleInteraction = () => {
+            if (appState === 'scattered') {
+                // First click: Pull particles into a heart
+                appState = 'forming';
+                
+                // Hide hint with pop
+                hintEl.style.transform = 'scale(0)';
+                hintEl.style.opacity = '0';
+                
+                gsap.to(material.uniforms.uFormed, {
+                    value: 1,
+                    duration: 2.5,
+                    ease: "back.out(1.2)", // Bouncy elastic form
+                    onComplete: () => {
+                        appState = 'formed';
+                        hintEl.innerText = "Tap again 😛😛";
+                        hintEl.style.transform = 'scale(1)';
+                        hintEl.style.opacity = '1';
+                    }
+                });
+            } else if (appState === 'formed') {
+                // Second click: Burst into balloons and show letter
+                appState = 'burst';
+                
+                hintEl.style.transform = 'scale(0)';
+                hintEl.style.opacity = '0';
+
+                // Float away like balloons
+                gsap.to(material.uniforms.uBurst, {
+                    value: 1,
+                    duration: 3,
+                    ease: "power2.inOut"
+                });
+
+                gsap.to(camera.position, {
+                    z: 20,
+                    duration: 3,
+                    ease: "power2.out"
+                });
+
+                // Sweet bubble pop-in for the letter, keeping center position
+                gsap.to('#love-letter', {
+                    opacity: 1,
+                    scale: 1, // Animate toward target scale (maintaining translate-centering)
+                    duration: 1.2,
+                    delay: 0.5,
+                    ease: "elastic.out(1, 0.5)" // Super bouncy appearance
+                });
+            }
+        };
+
+        // Listen for both clicks and touches (for mobile)
+        window.addEventListener('click', handleInteraction);
+        window.addEventListener('touchstart', handleInteraction);
+
+        // --- Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            material.uniforms.uTime.value = elapsedTime;
+
+            // Very gentle, dreamy rotation
+            if (appState !== 'burst') {
+                particles.rotation.y = Math.sin(elapsedTime * 0.2) * 0.3;
+                particles.rotation.z = Math.sin(elapsedTime * 0.4) * 0.05; 
+            } else {
+                particles.rotation.y += 0.002;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // --- Responsive Window Resizing ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
